@@ -144,7 +144,7 @@ var Collect = new Phaser.Class({
                     graph.fillStyle(0xffffff, .0);
                     graph.lineStyle(0, 0xffffff, .0);
                 })
-                .on("pointerup", () => {
+                .on("pointerdown", () => {
                     let isCollectable = area.collectable && area.item in this.ingredients;
 
                     if (isCollectable && this.ingredients[area.item].collected) {
