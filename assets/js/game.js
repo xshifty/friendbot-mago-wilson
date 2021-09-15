@@ -6,8 +6,7 @@ var game = new Phaser.Game({
         width: 800,
         height: 480
     },
-    pixelArt: true,
-    antialias: false,
+    antialias: true,
     backgroundColor: "#444",
     scene: [/*Start, Intro,*/ Collect, /*, Mix, Use, */ Final]
 });

@@ -26,131 +26,143 @@ var Collect = new Phaser.Class({
 
     create: function ()
     {
-        createScene.call(this);
-        createIngredientsBar.call(this);
-        createCollectAreas.call(this);
+        this.createScene();
+        this.createIngredientsBar();
+        this.createCollectAreas();
     },
 
     update: function ()
     {
         updateIngredientsBar.call(this);
         updateCollectAreas.call(this);
-    }
-});
+    },
 
-function createScene()
-{
-    this.theme = this.sound.add('sugar_plum_fairy');
-    this.theme.loop = true;
-    this.theme.play();
-    
-    this.add.image(400, 240, 'labo');
-    this.add.text(20, 30, "Coletar ingredientes", {fontSize: "14pt"});
-}
+    createScene: function ()
+    {
+        this.theme = this.sound.add('sugar_plum_fairy');
+        this.theme.loop = true;
+        this.theme.play();
+        
+        let labo = this.add.image(400, 240, 'labo');
+        labo.setPipeline('Light2D');
+        this.add.text(20, 30, "Coletar ingredientes", {fontSize: "14pt"});
 
-function createIngredientsBar()
-{
-    this.ingredients = {
-        feather: {
-            index: 1,
-            img: null,
-            collected: false,
-        },
-        mushroom: {
-            index: 2,
-            img: null,
-            collected: false,
-        },
-        powder: {
-            index: 3,
-            img: null,
-            collected: false,
-        },
-        spider: {
-            index: 4,
-            img: null,
-            collected: false,
-        },
-        tooth: {
-            index: 5,
-            img: null,
-            collected: false,
-        }
-    };
+        this.lights.enable().setAmbientColor(0x555555);
+        
+        let lantern = this.lights.addLight(500, 250, 200, 0xffffff, 3);
 
-    let graph = this.add.graphics();
-    graph.fillStyle(0xff00ff, .2);
-    graph.fillRoundedRect(360, 20, 420, 40, 8);
+        this.input.on('pointermove', function (pointer) {
+            lantern.x = pointer.x;
+            lantern.y = pointer.y;
+        });
 
-    for (let i in this.ingredients) {
-        this.ingredients[i].img = this.add.image(330 + (this.ingredients[i].index * 80), 40, i);
-        this.ingredients[i].img.scale = .3;
-        this.ingredients[i].img.alpha = .4;
+        this.lantern = lantern;
+    },
 
-        this.ingredients[i].img.setInteractive()
-            .on("pointerdown", () => this.ingredients[i].img.setAlpha(.5))
-            .on("pointerup", () => {
-                this.ingredients[i].img.alpha = .4;
-            });
-    }
-}
+    createIngredientsBar: function ()
+    {
+        this.ingredients = {
+            feather: {
+                index: 1,
+                img: null,
+                collected: false,
+            },
+            mushroom: {
+                index: 2,
+                img: null,
+                collected: false,
+            },
+            powder: {
+                index: 3,
+                img: null,
+                collected: false,
+            },
+            spider: {
+                index: 4,
+                img: null,
+                collected: false,
+            },
+            tooth: {
+                index: 5,
+                img: null,
+                collected: false,
+            }
+        };
 
-function createCollectAreas()
-{
-    this.collectAreas = [];
-
-    for (let i in CollectAreas.areas) {
         let graph = this.add.graphics();
-    
+        graph.fillStyle(0xff00ff, .2);
+        graph.fillRoundedRect(360, 20, 420, 40, 8);
 
-        graph.fillStyle(0x000000, .0);
-        graph.lineStyle(0, 0xffffff, 1);
+        for (let i in this.ingredients) {
+            this.ingredients[i].img = this.add.image(330 + (this.ingredients[i].index * 80), 40, i);
+            this.ingredients[i].img.scale = .3;
+            this.ingredients[i].img.alpha = .4;
 
-        if (CollectAreas.debug) {
-            graph.fillStyle(0x00ff00, .2);
-            graph.lineStyle(1, 0xffffff, 1);
+            this.ingredients[i].img.setInteractive()
+                .on("pointerdown", () => this.ingredients[i].img.setAlpha(.5))
+                .on("pointerup", () => {
+                    this.ingredients[i].img.alpha = .4;
+                });
         }
+    },
 
-        let area = CollectAreas.areas[i];
-        let poly = new Phaser.Geom.Polygon();
-        let points = [];
+    createCollectAreas: function ()
+    {
+        this.collectAreas = [];
 
-        for (let q in area.poly) {
-            let p = area.poly[q];
-            points.push(new Phaser.Geom.Point(p[0], p[1]));
+        for (let i in CollectAreas.areas) {
+            let graph = this.add.graphics();
+        
+
+            graph.fillStyle(0x000000, .0);
+            graph.lineStyle(0, 0xffffff, 1);
+
+            if (CollectAreas.debug) {
+                graph.fillStyle(0x00ff00, .1);
+                graph.lineStyle(1, 0xffffff, 1);
+            }
+
+            let area = CollectAreas.areas[i];
+            let poly = new Phaser.Geom.Polygon();
+            let points = [];
+
+            for (let q in area.poly) {
+                let p = area.poly[q];
+                points.push(new Phaser.Geom.Point(p[0], p[1]));
+            }
+
+            poly.setTo(points);
+
+            graph.setInteractive(poly, (p, x, y) => p.contains(x, y), {cursor: 'pointer'})
+                .on("pointerover", () => {
+                    graph.clear();
+                    graph.fillStyle(0xffffff, 0);
+                    graph.lineStyle(1, 0xffcc00, .5);
+                })
+                .on("pointerout", () => {
+                    graph.clear();
+                    graph.fillStyle(0xffffff, .0);
+                    graph.lineStyle(0, 0xffffff, .0);
+                })
+                .on("pointerup", () => {
+                    let isCollectable = area.collectable && area.item in this.ingredients;
+
+                    if (isCollectable && this.ingredients[area.item].collected) {
+                        return true;
+                    }
+                    
+                    if (isCollectable) {
+                        this.ingredients[area.item].collected = true;
+                    }
+
+                    showMessage(area.message);
+                });
+
+
+            this.collectAreas.push({poly: poly, graph: graph});
         }
-
-        poly.setTo(points);
-
-        graph.setInteractive(poly, (p, x, y) => p.contains(x, y), {cursor: 'pointer'})
-            .on("pointerover", () => {
-                graph.clear();
-                graph.fillStyle(0xffffff, 0);
-                graph.lineStyle(1, 0xffcc00, .5);
-            })
-            .on("pointerout", () => {
-                graph.clear();
-                graph.fillStyle(0xffffff, .0);
-                graph.lineStyle(0, 0xffffff, .0);
-            })
-            .on("pointerup", () => {
-                let isCollectable = area.collectable && area.item in this.ingredients;
-
-                if (isCollectable && this.ingredients[area.item].collected) {
-                    return true;
-                }
-                
-                if (isCollectable) {
-                    this.ingredients[area.item].collected = true;
-                }
-
-                showMessage(area.message);
-            });
-
-
-        this.collectAreas.push({poly: poly, graph: graph});
-    }
-}
+    },
+});
 
 function updateIngredientsBar()
 {
